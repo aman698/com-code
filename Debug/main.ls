@@ -444,148 +444,261 @@
  848  026c 85            	popw	x
  849                     ; 139 }
  852  026d 81            	ret
- 896                     ; 140 void main(void)
- 896                     ; 141 {
- 897                     	switch	.text
- 898  026e               _main:
- 900  026e 88            	push	a
- 901       00000001      OFST:	set	1
- 904                     ; 144     UART_Config();
- 906  026f cd002a        	call	_UART_Config
- 908                     ; 145     GPIO_Config();
- 910  0272 cd01b5        	call	_GPIO_Config
- 912                     ; 147     UART_SendString("SYSTEM START\r\n");
- 914  0275 ae000a        	ldw	x,#L572
- 915  0278 cd005b        	call	_UART_SendString
- 917  027b               L772:
- 918                     ; 152         if(UART1_GetFlagStatus(UART1_FLAG_RXNE) != RESET)
- 920  027b ae0020        	ldw	x,#32
- 921  027e cd0000        	call	_UART1_GetFlagStatus
- 923  0281 4d            	tnz	a
- 924  0282 277a          	jreq	L303
- 925                     ; 154             ch = UART1_ReceiveData8();
- 927  0284 cd0000        	call	_UART1_ReceiveData8
- 929  0287 6b01          	ld	(OFST+0,sp),a
- 931                     ; 156             if((ch == '\r') || (ch == '\n'))
- 933  0289 7b01          	ld	a,(OFST+0,sp)
- 934  028b a10d          	cp	a,#13
- 935  028d 2706          	jreq	L703
- 937  028f 7b01          	ld	a,(OFST+0,sp)
- 938  0291 a10a          	cp	a,#10
- 939  0293 2657          	jrne	L503
- 940  0295               L703:
- 941                     ; 158                 rx_buf[index] = '\0';
- 943  0295 b600          	ld	a,_index
- 944  0297 5f            	clrw	x
- 945  0298 97            	ld	xl,a
- 946  0299 6f07          	clr	(_rx_buf,x)
- 947                     ; 160                 if((rx_buf[0] == 'R') &&
- 947                     ; 161                 (rx_buf[1] >= '1') &&
- 947                     ; 162                 (rx_buf[1] <= '6') &&
- 947                     ; 163                 (rx_buf[2] == ',') &&
- 947                     ; 164                 ((rx_buf[3] == '0') || (rx_buf[3] == '1')))
- 949  029b b607          	ld	a,_rx_buf
- 950  029d a152          	cp	a,#82
- 951  029f 2647          	jrne	L113
- 953  02a1 b608          	ld	a,_rx_buf+1
- 954  02a3 a131          	cp	a,#49
- 955  02a5 2541          	jrult	L113
- 957  02a7 b608          	ld	a,_rx_buf+1
- 958  02a9 a137          	cp	a,#55
- 959  02ab 243b          	jruge	L113
- 961  02ad b609          	ld	a,_rx_buf+2
- 962  02af a12c          	cp	a,#44
- 963  02b1 2635          	jrne	L113
- 965  02b3 b60a          	ld	a,_rx_buf+3
- 966  02b5 a130          	cp	a,#48
- 967  02b7 2706          	jreq	L313
- 969  02b9 b60a          	ld	a,_rx_buf+3
- 970  02bb a131          	cp	a,#49
- 971  02bd 2629          	jrne	L113
- 972  02bf               L313:
- 973                     ; 166                     Relay_Control(rx_buf[1] - '0',
- 973                     ; 167                                   rx_buf[3] - '0');
- 975  02bf b60a          	ld	a,_rx_buf+3
- 976  02c1 a030          	sub	a,#48
- 977  02c3 97            	ld	xl,a
- 978  02c4 b608          	ld	a,_rx_buf+1
- 979  02c6 a030          	sub	a,#48
- 980  02c8 95            	ld	xh,a
- 981  02c9 cd0072        	call	_Relay_Control
- 983                     ; 169                     UART_SendString("R");
- 985  02cc ae0008        	ldw	x,#L513
- 986  02cf cd005b        	call	_UART_SendString
- 988                     ; 170                     UART_SendChar(rx_buf[1]);
- 990  02d2 b608          	ld	a,_rx_buf+1
- 991  02d4 cd004e        	call	_UART_SendChar
- 993                     ; 171                     UART_SendString(",");
- 995  02d7 ae0006        	ldw	x,#L713
- 996  02da cd005b        	call	_UART_SendString
- 998                     ; 172                     UART_SendChar(rx_buf[3]);
-1000  02dd b60a          	ld	a,_rx_buf+3
-1001  02df cd004e        	call	_UART_SendChar
-1003                     ; 173                     UART_SendString(" OK\r\n");
-1005  02e2 ae0000        	ldw	x,#L123
-1006  02e5 cd005b        	call	_UART_SendString
-1008  02e8               L113:
-1009                     ; 176                 index = 0;
-1011  02e8 3f00          	clr	_index
-1013  02ea 2012          	jra	L303
-1014  02ec               L503:
-1015                     ; 180                 if(index < sizeof(rx_buf)-1)
-1017  02ec b600          	ld	a,_index
-1018  02ee a10f          	cp	a,#15
-1019  02f0 240c          	jruge	L303
-1020                     ; 182                     rx_buf[index++] = ch;
-1022  02f2 b600          	ld	a,_index
-1023  02f4 97            	ld	xl,a
-1024  02f5 3c00          	inc	_index
-1025  02f7 9f            	ld	a,xl
-1026  02f8 5f            	clrw	x
-1027  02f9 97            	ld	xl,a
-1028  02fa 7b01          	ld	a,(OFST+0,sp)
-1029  02fc e707          	ld	(_rx_buf,x),a
-1030  02fe               L303:
-1031                     ; 188         Input_Status_Send();
-1033  02fe cd012c        	call	_Input_Status_Send
-1036  0301 ac7b027b      	jpf	L772
-1090                     	xdef	_main
-1091                     	xdef	_GPIO_Config
-1092                     	xdef	_Input_Status_Send
-1093                     	xdef	_Relay_Control
-1094                     	xdef	_UART_SendString
-1095                     	xdef	_UART_SendChar
-1096                     	xdef	_UART_Config
-1097                     	xdef	_delay_ms
-1098                     	xdef	_prev_input_str
-1099                     	switch	.ubsct
-1100  0000               _input_str:
-1101  0000 000000000000  	ds.b	7
-1102                     	xdef	_input_str
-1103                     	xdef	_index
-1104  0007               _rx_buf:
-1105  0007 000000000000  	ds.b	16
-1106                     	xdef	_rx_buf
-1107                     	xref	_UART1_GetFlagStatus
-1108                     	xref	_UART1_SendData8
-1109                     	xref	_UART1_ReceiveData8
-1110                     	xref	_UART1_Cmd
-1111                     	xref	_UART1_Init
-1112                     	xref	_UART1_DeInit
-1113                     	xref	_GPIO_ReadInputPin
-1114                     	xref	_GPIO_WriteLow
-1115                     	xref	_GPIO_WriteHigh
-1116                     	xref	_GPIO_Init
-1117                     	xref	_CLK_HSIPrescalerConfig
-1118                     .const:	section	.text
-1119  0000               L123:
-1120  0000 204f4b0d      	dc.b	" OK",13
-1121  0004 0a00          	dc.b	10,0
-1122  0006               L713:
-1123  0006 2c00          	dc.b	",",0
-1124  0008               L513:
-1125  0008 5200          	dc.b	"R",0
-1126  000a               L572:
-1127  000a 53595354454d  	dc.b	"SYSTEM START",13
-1128  0017 0a00          	dc.b	10,0
-1148                     	end
+ 908                     ; 140 void main(void)
+ 908                     ; 141 {
+ 909                     	switch	.text
+ 910  026e               _main:
+ 912  026e 88            	push	a
+ 913       00000001      OFST:	set	1
+ 916                     ; 145     UART_Config();
+ 918  026f cd002a        	call	_UART_Config
+ 920                     ; 146     GPIO_Config();
+ 922  0272 cd01b5        	call	_GPIO_Config
+ 924                     ; 148     UART_SendString("SYSTEM START\r\n");
+ 926  0275 ae0027        	ldw	x,#L103
+ 927  0278 cd005b        	call	_UART_SendString
+ 929  027b               L303:
+ 930                     ; 153         if(UART1_GetFlagStatus(UART1_FLAG_RXNE) != RESET)
+ 932  027b ae0020        	ldw	x,#32
+ 933  027e cd0000        	call	_UART1_GetFlagStatus
+ 935  0281 4d            	tnz	a
+ 936  0282 2603          	jrne	L46
+ 937  0284 cc03a6        	jp	L703
+ 938  0287               L46:
+ 939                     ; 155             ch = UART1_ReceiveData8();
+ 941  0287 cd0000        	call	_UART1_ReceiveData8
+ 943  028a 6b01          	ld	(OFST+0,sp),a
+ 945                     ; 157             if((ch == '\r') || (ch == '\n'))
+ 947  028c 7b01          	ld	a,(OFST+0,sp)
+ 948  028e a10d          	cp	a,#13
+ 949  0290 2709          	jreq	L313
+ 951  0292 7b01          	ld	a,(OFST+0,sp)
+ 952  0294 a10a          	cp	a,#10
+ 953  0296 2703          	jreq	L66
+ 954  0298 cc0390        	jp	L113
+ 955  029b               L66:
+ 956  029b               L313:
+ 957                     ; 159                 rx_buf[index] = '\0';
+ 959  029b b600          	ld	a,_index
+ 960  029d 5f            	clrw	x
+ 961  029e 97            	ld	xl,a
+ 962  029f 6f07          	clr	(_rx_buf,x)
+ 963                     ; 162                 if((rx_buf[0]=='S') &&
+ 963                     ; 163                    (rx_buf[1]=='T') &&
+ 963                     ; 164                    (rx_buf[2]=='R') &&
+ 963                     ; 165                    (rx_buf[3]=='\0'))
+ 965  02a1 b607          	ld	a,_rx_buf
+ 966  02a3 a153          	cp	a,#83
+ 967  02a5 2703          	jreq	L07
+ 968  02a7 cc033f        	jp	L513
+ 969  02aa               L07:
+ 971  02aa b608          	ld	a,_rx_buf+1
+ 972  02ac a154          	cp	a,#84
+ 973  02ae 2703          	jreq	L27
+ 974  02b0 cc033f        	jp	L513
+ 975  02b3               L27:
+ 977  02b3 b609          	ld	a,_rx_buf+2
+ 978  02b5 a152          	cp	a,#82
+ 979  02b7 26f7          	jrne	L513
+ 981  02b9 3d0a          	tnz	_rx_buf+3
+ 982  02bb 26f3          	jrne	L513
+ 983                     ; 167                     UART_SendString("STREAM START\r\n");
+ 985  02bd ae0018        	ldw	x,#L713
+ 986  02c0 cd005b        	call	_UART_SendString
+ 988                     ; 169                     for(i=0;i<60;i++)      /* 60 x 50 ms = 3 sec */
+ 990  02c3 0f01          	clr	(OFST+0,sp)
+ 992  02c5               L123:
+ 993                     ; 171                         input_str[0] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_2)==RESET) ? '1' : '0';
+ 995  02c5 4b04          	push	#4
+ 996  02c7 ae500f        	ldw	x,#20495
+ 997  02ca cd0000        	call	_GPIO_ReadInputPin
+ 999  02cd 5b01          	addw	sp,#1
+1000  02cf 4d            	tnz	a
+1001  02d0 2604          	jrne	L44
+1002  02d2 a631          	ld	a,#49
+1003  02d4 2002          	jra	L64
+1004  02d6               L44:
+1005  02d6 a630          	ld	a,#48
+1006  02d8               L64:
+1007  02d8 b700          	ld	_input_str,a
+1008                     ; 172                         input_str[1] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_3)==RESET) ? '1' : '0';
+1010  02da 4b08          	push	#8
+1011  02dc ae500f        	ldw	x,#20495
+1012  02df cd0000        	call	_GPIO_ReadInputPin
+1014  02e2 5b01          	addw	sp,#1
+1015  02e4 4d            	tnz	a
+1016  02e5 2604          	jrne	L05
+1017  02e7 a631          	ld	a,#49
+1018  02e9 2002          	jra	L25
+1019  02eb               L05:
+1020  02eb a630          	ld	a,#48
+1021  02ed               L25:
+1022  02ed b701          	ld	_input_str+1,a
+1023                     ; 173                         input_str[2] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_4)==RESET) ? '1' : '0';
+1025  02ef 4b10          	push	#16
+1026  02f1 ae500f        	ldw	x,#20495
+1027  02f4 cd0000        	call	_GPIO_ReadInputPin
+1029  02f7 5b01          	addw	sp,#1
+1030  02f9 4d            	tnz	a
+1031  02fa 2604          	jrne	L45
+1032  02fc a631          	ld	a,#49
+1033  02fe 2002          	jra	L65
+1034  0300               L45:
+1035  0300 a630          	ld	a,#48
+1036  0302               L65:
+1037  0302 b702          	ld	_input_str+2,a
+1038                     ; 174                         input_str[3] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_7)==RESET) ? '1' : '0';
+1040  0304 4b80          	push	#128
+1041  0306 ae500f        	ldw	x,#20495
+1042  0309 cd0000        	call	_GPIO_ReadInputPin
+1044  030c 5b01          	addw	sp,#1
+1045  030e 4d            	tnz	a
+1046  030f 2604          	jrne	L06
+1047  0311 a631          	ld	a,#49
+1048  0313 2002          	jra	L26
+1049  0315               L06:
+1050  0315 a630          	ld	a,#48
+1051  0317               L26:
+1052  0317 b703          	ld	_input_str+3,a
+1053                     ; 175                         input_str[4] = '\r';
+1055  0319 350d0004      	mov	_input_str+4,#13
+1056                     ; 176                         input_str[5] = '\n';
+1058  031d 350a0005      	mov	_input_str+5,#10
+1059                     ; 177                         input_str[6] = '\0';
+1061  0321 3f06          	clr	_input_str+6
+1062                     ; 179                         UART_SendString(input_str);
+1064  0323 ae0000        	ldw	x,#_input_str
+1065  0326 cd005b        	call	_UART_SendString
+1067                     ; 181                         delay_ms(50);
+1069  0329 ae0032        	ldw	x,#50
+1070  032c cd0000        	call	_delay_ms
+1072                     ; 169                     for(i=0;i<60;i++)      /* 60 x 50 ms = 3 sec */
+1074  032f 0c01          	inc	(OFST+0,sp)
+1078  0331 7b01          	ld	a,(OFST+0,sp)
+1079  0333 a13c          	cp	a,#60
+1080  0335 258e          	jrult	L123
+1081                     ; 184                     UART_SendString("STREAM STOP\r\n");
+1083  0337 ae000a        	ldw	x,#L723
+1084  033a cd005b        	call	_UART_SendString
+1087  033d 204d          	jra	L133
+1088  033f               L513:
+1089                     ; 188                 else if((rx_buf[0] == 'R') &&
+1089                     ; 189                         (rx_buf[1] >= '1') &&
+1089                     ; 190                         (rx_buf[1] <= '6') &&
+1089                     ; 191                         (rx_buf[2] == ',') &&
+1089                     ; 192                         ((rx_buf[3] == '0') || (rx_buf[3] == '1')))
+1091  033f b607          	ld	a,_rx_buf
+1092  0341 a152          	cp	a,#82
+1093  0343 2647          	jrne	L133
+1095  0345 b608          	ld	a,_rx_buf+1
+1096  0347 a131          	cp	a,#49
+1097  0349 2541          	jrult	L133
+1099  034b b608          	ld	a,_rx_buf+1
+1100  034d a137          	cp	a,#55
+1101  034f 243b          	jruge	L133
+1103  0351 b609          	ld	a,_rx_buf+2
+1104  0353 a12c          	cp	a,#44
+1105  0355 2635          	jrne	L133
+1107  0357 b60a          	ld	a,_rx_buf+3
+1108  0359 a130          	cp	a,#48
+1109  035b 2706          	jreq	L533
+1111  035d b60a          	ld	a,_rx_buf+3
+1112  035f a131          	cp	a,#49
+1113  0361 2629          	jrne	L133
+1114  0363               L533:
+1115                     ; 194                     Relay_Control(rx_buf[1]-'0',
+1115                     ; 195                                   rx_buf[3]-'0');
+1117  0363 b60a          	ld	a,_rx_buf+3
+1118  0365 a030          	sub	a,#48
+1119  0367 97            	ld	xl,a
+1120  0368 b608          	ld	a,_rx_buf+1
+1121  036a a030          	sub	a,#48
+1122  036c 95            	ld	xh,a
+1123  036d cd0072        	call	_Relay_Control
+1125                     ; 197                     UART_SendString("R");
+1127  0370 ae0008        	ldw	x,#L733
+1128  0373 cd005b        	call	_UART_SendString
+1130                     ; 198                     UART_SendChar(rx_buf[1]);
+1132  0376 b608          	ld	a,_rx_buf+1
+1133  0378 cd004e        	call	_UART_SendChar
+1135                     ; 199                     UART_SendString(",");
+1137  037b ae0006        	ldw	x,#L143
+1138  037e cd005b        	call	_UART_SendString
+1140                     ; 200                     UART_SendChar(rx_buf[3]);
+1142  0381 b60a          	ld	a,_rx_buf+3
+1143  0383 cd004e        	call	_UART_SendChar
+1145                     ; 201                     UART_SendString(" OK\r\n");
+1147  0386 ae0000        	ldw	x,#L343
+1148  0389 cd005b        	call	_UART_SendString
+1150  038c               L133:
+1151                     ; 204                 index = 0;
+1153  038c 3f00          	clr	_index
+1155  038e 2016          	jra	L703
+1156  0390               L113:
+1157                     ; 208                 if(index < sizeof(rx_buf)-1)
+1159  0390 b600          	ld	a,_index
+1160  0392 a10f          	cp	a,#15
+1161  0394 240e          	jruge	L743
+1162                     ; 210                     rx_buf[index++] = ch;
+1164  0396 b600          	ld	a,_index
+1165  0398 97            	ld	xl,a
+1166  0399 3c00          	inc	_index
+1167  039b 9f            	ld	a,xl
+1168  039c 5f            	clrw	x
+1169  039d 97            	ld	xl,a
+1170  039e 7b01          	ld	a,(OFST+0,sp)
+1171  03a0 e707          	ld	(_rx_buf,x),a
+1173  03a2 2002          	jra	L703
+1174  03a4               L743:
+1175                     ; 214                     index = 0;
+1177  03a4 3f00          	clr	_index
+1178  03a6               L703:
+1179                     ; 220         Input_Status_Send();
+1181  03a6 cd012c        	call	_Input_Status_Send
+1184  03a9 ac7b027b      	jpf	L303
+1238                     	xdef	_main
+1239                     	xdef	_GPIO_Config
+1240                     	xdef	_Input_Status_Send
+1241                     	xdef	_Relay_Control
+1242                     	xdef	_UART_SendString
+1243                     	xdef	_UART_SendChar
+1244                     	xdef	_UART_Config
+1245                     	xdef	_delay_ms
+1246                     	xdef	_prev_input_str
+1247                     	switch	.ubsct
+1248  0000               _input_str:
+1249  0000 000000000000  	ds.b	7
+1250                     	xdef	_input_str
+1251                     	xdef	_index
+1252  0007               _rx_buf:
+1253  0007 000000000000  	ds.b	16
+1254                     	xdef	_rx_buf
+1255                     	xref	_UART1_GetFlagStatus
+1256                     	xref	_UART1_SendData8
+1257                     	xref	_UART1_ReceiveData8
+1258                     	xref	_UART1_Cmd
+1259                     	xref	_UART1_Init
+1260                     	xref	_UART1_DeInit
+1261                     	xref	_GPIO_ReadInputPin
+1262                     	xref	_GPIO_WriteLow
+1263                     	xref	_GPIO_WriteHigh
+1264                     	xref	_GPIO_Init
+1265                     	xref	_CLK_HSIPrescalerConfig
+1266                     .const:	section	.text
+1267  0000               L343:
+1268  0000 204f4b0d      	dc.b	" OK",13
+1269  0004 0a00          	dc.b	10,0
+1270  0006               L143:
+1271  0006 2c00          	dc.b	",",0
+1272  0008               L733:
+1273  0008 5200          	dc.b	"R",0
+1274  000a               L723:
+1275  000a 53545245414d  	dc.b	"STREAM STOP",13
+1276  0016 0a00          	dc.b	10,0
+1277  0018               L713:
+1278  0018 53545245414d  	dc.b	"STREAM START",13
+1279  0025 0a00          	dc.b	10,0
+1280  0027               L103:
+1281  0027 53595354454d  	dc.b	"SYSTEM START",13
+1282  0034 0a00          	dc.b	10,0
+1302                     	end

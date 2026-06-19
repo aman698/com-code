@@ -1,6 +1,5 @@
 // input trigger
-
-#include "stm8s.h"
+#include "stm8s_conf.h"
 
 uint8_t rx_buf[16];
 uint8_t index = 0;
@@ -140,6 +139,7 @@ void GPIO_Config(void)
 void main(void)
 {
     uint8_t ch;
+    uint8_t i;
 
     UART_Config();
     GPIO_Config();
@@ -157,14 +157,41 @@ void main(void)
             {
                 rx_buf[index] = '\0';
 
-                if((rx_buf[0] == 'R') &&
-                (rx_buf[1] >= '1') &&
-                (rx_buf[1] <= '6') &&
-                (rx_buf[2] == ',') &&
-                ((rx_buf[3] == '0') || (rx_buf[3] == '1')))
+                /* STR command : stream inputs for 3 sec */
+                if((rx_buf[0]=='S') &&
+                   (rx_buf[1]=='T') &&
+                   (rx_buf[2]=='R') &&
+                   (rx_buf[3]=='\0'))
                 {
-                    Relay_Control(rx_buf[1] - '0',
-                                  rx_buf[3] - '0');
+                    UART_SendString("STREAM START\r\n");
+
+                    for(i=0;i<60;i++)      /* 60 x 50 ms = 3 sec */
+                    {
+                        input_str[0] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_2)==RESET) ? '1' : '0';
+                        input_str[1] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_3)==RESET) ? '1' : '0';
+                        input_str[2] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_4)==RESET) ? '1' : '0';
+                        input_str[3] = (GPIO_ReadInputPin(GPIOD, GPIO_PIN_7)==RESET) ? '1' : '0';
+                        input_str[4] = '\r';
+                        input_str[5] = '\n';
+                        input_str[6] = '\0';
+
+                        UART_SendString(input_str);
+
+                        delay_ms(50);
+                    }
+
+                    UART_SendString("STREAM STOP\r\n");
+                }
+
+                /* Relay commands R1,1 ... R6,0 */
+                else if((rx_buf[0] == 'R') &&
+                        (rx_buf[1] >= '1') &&
+                        (rx_buf[1] <= '6') &&
+                        (rx_buf[2] == ',') &&
+                        ((rx_buf[3] == '0') || (rx_buf[3] == '1')))
+                {
+                    Relay_Control(rx_buf[1]-'0',
+                                  rx_buf[3]-'0');
 
                     UART_SendString("R");
                     UART_SendChar(rx_buf[1]);
@@ -181,10 +208,14 @@ void main(void)
                 {
                     rx_buf[index++] = ch;
                 }
+                else
+                {
+                    index = 0;
+                }
             }
         }
 
-        /* Send input state if changed */
+        /* Send input state automatically when changed */
         Input_Status_Send();
     }
 }
